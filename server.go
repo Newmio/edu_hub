@@ -1,4 +1,4 @@
-package server
+package ed
 
 import (
 	"context"
