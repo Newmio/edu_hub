@@ -1,0 +1,8 @@
+*.exe
+.env
+.idea
+bin
+/storage
+*.pem
+*.key
+.DS_Store
