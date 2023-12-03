@@ -7,7 +7,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type IUserRepo interface {
+type iUserRepo interface {
+	MigrateUser() error
 	CreatePerson(pers *Person) error
 	CreateAccount(acc *Account) error
 }
@@ -41,20 +42,47 @@ func (db *userRepo) CreatePerson(pers *Person) error {
 }
 
 func (db *userRepo) CreateAccount(acc *Account) error {
-	str := `insert into accounts(login, password, id_person, active) values($1,$2,$3,$4)`
+	tx, err := db.db.Beginx()
+	if err != nil{
+		return ed.ErrTrace(err, ed.Trace())
+	}
 
-	result, err := db.db.Exec(str, acc.Login, acc.Pass, acc.Id_person, acc.Active)
+	str := `select exists(select 1 from accounts where login = $1) as result`
+	
+	var res bool
+	err = tx.QueryRow(str, acc.Login).Scan(&res)
+	if err != nil{
+		tx.Rollback()
+		return ed.ErrDbTrace(err, str, ed.Trace())
+	}
+
+	if res{
+		tx.Rollback()
+		return errors.New("account already exists")
+	}
+
+	str = `insert into accounts(login, password, id_person, active) values($1,$2,$3,$4)`
+
+	result, err := tx.Exec(str, acc.Login, acc.Pass, acc.Id_person, acc.Active)
 	if err != nil {
+		tx.Rollback()
 		return ed.ErrDbTrace(err, str, ed.Trace())
 	}
 
 	row, err := result.RowsAffected()
 	if err != nil {
+		tx.Rollback()
 		return ed.ErrDbTrace(err, str, ed.Trace())
 	}
 
 	if row == 0 {
+		tx.Rollback()
 		return errors.New("bad insert account")
+	}
+
+	if err := tx.Commit(); err != nil{
+		tx.Rollback()
+		return ed.ErrTrace(err, ed.Trace())
 	}
 
 	return nil

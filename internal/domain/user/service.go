@@ -6,26 +6,18 @@ type IUserService interface {
 }
 
 type userService struct {
-	r IUserRepo
+	r iUserRepo
 }
 
-func NewUserService(r IUserRepo) *userService {
+func NewUserService(r iUserRepo) *userService {
+	err := r.MigrateUser()
+	if err != nil{
+		return nil
+	}
 	return &userService{r: r}
 }
 
 func (s *userService) CreateAccount(acc *Account) error {
-
-	// result, err := s.common.CheckExistInDb("accounts", "login", acc.Login)
-	// if err != nil {
-	// 	return util.ErrTrace(err, util.Trace())
-	// }
-
-	// if !result {
-	// 	return s.user.CreateAccount(acc)
-	// }
-
-	// return errors.New("account already exists")
-
 	return s.r.CreateAccount(acc)
 }
 

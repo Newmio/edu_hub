@@ -29,6 +29,7 @@ func InitEngine() (*gin.Engine, error) {
 	lessonHand := lesson.NewHandler(lessonService)
 
 	r := gin.Default()
+
 	r = userHand.InitUserRoutes(r)
 	r = classroomHand.InitClassroomRoutes(r)
 	r = lessonHand.InitLessonRoutes(r)

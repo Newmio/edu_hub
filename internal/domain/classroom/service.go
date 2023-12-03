@@ -5,9 +5,14 @@ type IClassroomService interface{
 }
 
 type classroomService struct{
-	r IClassroomRepo
+	r iClassroomRepo
 }
 
-func NewClassroomService(r IClassroomRepo)*classroomService{
+func NewClassroomService(r iClassroomRepo)*classroomService{
+	err := r.MigrateClassroom()
+	if err != nil{
+		return nil
+	}
+	
 	return &classroomService{r: r}
 }
