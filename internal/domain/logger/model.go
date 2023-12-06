@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,11 +21,25 @@ type Log struct {
 	Date_stop    time.Time `json:"date_stop" db:"date_stop"`
 	Milliseconds uint      `json:"milliseconds" db:"milliseconds"`
 	Ip           string    `json:"ip" db:"ip"`
-	Success bool `json:"success" db:"success"`
+	Success      bool      `json:"success" db:"success"`
 }
 
-func (log *Log) CreateLog(c *gin.Context){
-	
+func (log *Log) CreateLog(c *gin.Context) {
+
+	log.Url = c.Request.Host + c.Request.URL.String()
+	log.Method = c.Request.Method
+	log.Date_start = time.Now()
+	log.Ip = c.ClientIP()
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Body_req = "ERROR PARSE BODY"
+	}
+	log.Body_req = string(body)
+
+	for key, values := range c.Request.Header {
+		log.Headers_resp = fmt.Sprintf("%s: %v", key, values)
+	}
 }
 
 type Error struct {

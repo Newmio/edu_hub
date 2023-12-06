@@ -3,9 +3,14 @@ package logger
 import (
 	"fmt"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ILoggerService interface {
+	DefaultResponse(log *Log)gin.H
+	ErrorResponse(log *Log, er error)gin.H
+	LoggerRun(log *Log, errorText string)
 }
 
 type loggerService struct {
@@ -19,6 +24,16 @@ func NewLoggerService(r iLoggerRepo) *loggerService {
 	}
 
 	return &loggerService{r: r}
+}
+
+func (s *loggerService) ErrorResponse(log *Log, er error)gin.H{
+	s.LoggerRun(log, er.Error())
+	return gin.H{"status": "error", "error": er.Error()}
+}
+
+func (s *loggerService) DefaultResponse(log *Log)gin.H{
+	s.LoggerRun(log, "")
+	return gin.H{"status": "success"}
 }
 
 func (s *loggerService) LoggerRun(log *Log, errorText string) {
