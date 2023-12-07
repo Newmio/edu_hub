@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"bufio"
 	"crypto/sha256"
 	"ed"
 	"encoding/hex"
@@ -33,35 +32,22 @@ func (s *uploadService) CreateFile(file FileHistory) error {
 	return s.r.CreateFile(file)
 }
 
-
-func (s *uploadService) UploadFile(file FileData)error{
+func (s *uploadService) UploadFile(file FileData) error {
 	hash := sha256.Sum256([]byte(strconv.Itoa(int(file.Id_account))))
 
-	directory := fmt.Sprintf("%s/%s/%s/%s", 
-	hex.EncodeToString(hash[:]), time.Now().Format("02-01-2006"), file.File_type, file.File_name + "." + file.File_type)
+	directory := fmt.Sprintf("%s/%s/%s/%s",
+		hex.EncodeToString(hash[:]), time.Now().Format("02-01-2006"), file.File_type, file.File_name+"."+file.File_type)
 
 	err := os.MkdirAll(directory, os.ModePerm)
-	if err != nil{
+	if err != nil {
 		return ed.ErrTrace(err, ed.Trace())
 	}
 
 	out, err := os.Create(directory)
-	if err != nil{
+	if err != nil {
 		return ed.ErrTrace(err, ed.Trace())
 	}
 	defer out.Close()
-
-	writer := bufio.NewWriter(out)
-
-	_, err = writer.WriteString(file.Data)
-	if err != nil{
-		return ed.ErrTrace(err, ed.Trace())
-	}
-
-	err = writer.Flush()
-	if err != nil{
-		return ed.ErrTrace(err, ed.Trace())
-	}
 
 	return nil
 }

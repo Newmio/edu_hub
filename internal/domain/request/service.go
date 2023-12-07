@@ -10,9 +10,12 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type IRequestService interface {
+	Connect(w http.ResponseWriter, r *http.Request, h http.Header)(*websocket.Conn, error)
 }
 
 type requestService struct {
@@ -23,12 +26,17 @@ func NewLoggerService(r logger.ILoggerService) *requestService {
 	return &requestService{r: r}
 }
 
-func (s *requestService) RequestServer(param Param) (*http.Response, error) {
+func (s *requestService) Connect(w http.ResponseWriter, r *http.Request, h http.Header) (*websocket.Conn, error) {
+	return upgrader.Upgrade(w, r, h)
+}
+
+func (s *requestService) HttpRequest(param Param) (*http.Response, error) {
 	var body []byte
 
 	log := logger.Log{
 		Url:    param.Url,
 		Method: param.Method,
+		Type:   "http",
 	}
 
 	client := &http.Client{}
@@ -78,7 +86,7 @@ func (s *requestService) RequestServer(param Param) (*http.Response, error) {
 	}
 
 	log.Date_stop = time.Now()
-	log.Status = uint(resp.StatusCode)
+	log.Status = resp.StatusCode
 
 	bodyResp, err := io.ReadAll(resp.Body)
 	if err != nil {

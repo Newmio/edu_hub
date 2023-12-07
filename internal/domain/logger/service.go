@@ -38,7 +38,7 @@ func (s *loggerService) DefaultResponse(log *Log)gin.H{
 
 func (s *loggerService) LoggerRun(log *Log, errorText string) {
 	log.Date_stop = time.Now()
-	log.Milliseconds = uint(log.Date_stop.Sub(log.Date_stop).Milliseconds())
+	log.Milliseconds = int(log.Date_stop.Sub(log.Date_stop).Milliseconds())
 
 	err := s.r.CreateLog(log)
 	if err != nil {

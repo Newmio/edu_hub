@@ -22,10 +22,10 @@ func NewLoggerRepo(db *sqlx.DB) *loggerRepo {
 }
 
 func (db *loggerRepo) CreateLog(log *Log) error {
-	str := `insert into logs(url, body_req, headers_req, status, body_resp, headers_resp,
+	str := `insert into logs(type, url, body_req, headers_req, status, body_resp, headers_resp,
 		method, date_start, date_stop, milliseconds, ip, success) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`
 
-	result, err := db.db.Exec(str, log.Url, log.Body_req, log.Headers_req, log.Status, log.Body_resp,
+	result, err := db.db.Exec(str, log.Type, log.Url, log.Body_req, log.Headers_req, log.Status, log.Body_resp,
 		log.Headers_resp, log.Method, log.Date_start.Format("02-01-2006 15:04:05.000"),
 		log.Date_stop.Format("02-01-2006 15:04:05.000"), log.Milliseconds, log.Ip, log.Success)
 	if err != nil {
