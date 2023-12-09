@@ -2,7 +2,9 @@
 .env
 .idea
 bin
-/storage
+storage
 *.pem
 *.key
-.DS_Store
+DS_Store
+media
+test.png

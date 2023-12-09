@@ -15,28 +15,43 @@ import (
 )
 
 type IRequestService interface {
-	Connect(w http.ResponseWriter, r *http.Request, h http.Header)(*websocket.Conn, error)
+	WsConnect(w http.ResponseWriter, r *http.Request, h http.Header) (*websocket.Conn, error)
+	WsReadText(conn *websocket.Conn) ([]byte, error)
 }
 
 type requestService struct {
 	r logger.ILoggerService
 }
 
-func NewLoggerService(r logger.ILoggerService) *requestService {
+func NewRequestService(r logger.ILoggerService) *requestService {
 	return &requestService{r: r}
 }
 
-func (s *requestService) Connect(w http.ResponseWriter, r *http.Request, h http.Header) (*websocket.Conn, error) {
-	return upgrader.Upgrade(w, r, h)
+func (s *requestService) WsConnect(w http.ResponseWriter, r *http.Request, h http.Header) (*websocket.Conn, error) {
+	return upgrader.Upgrade(w, r, nil)
 }
 
+func (s *requestService) WsReadText(conn *websocket.Conn) ([]byte, error) {
+	t, msg, err := conn.ReadMessage()
+	if err != nil {
+		return nil, ed.ErrTrace(err, ed.Trace())
+	}
+
+	switch t {
+	case websocket.TextMessage:
+		return msg, nil
+	}
+
+	return nil, nil
+}
+
+// ==================== HTTP ====================
 func (s *requestService) HttpRequest(param Param) (*http.Response, error) {
 	var body []byte
 
 	log := logger.Log{
 		Url:    param.Url,
 		Method: param.Method,
-		Type:   "http",
 	}
 
 	client := &http.Client{}
@@ -101,7 +116,7 @@ func (s *requestService) HttpRequest(param Param) (*http.Response, error) {
 	log.Success = true
 
 	if param.CreateLog {
-		s.r.LoggerRun(&log, "")
+		//s.r.LoggerRun(&log, "")
 	}
 
 	return resp, nil

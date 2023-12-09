@@ -7,6 +7,7 @@ import (
 )
 
 func ErrTrace(err error, str string) error {
+	fmt.Println(str)
 	return errors.New(err.Error() + "\n" + str)
 }
 

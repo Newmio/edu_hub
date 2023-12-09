@@ -5,6 +5,9 @@ import (
 	"ed/internal/app/postgres"
 	"ed/internal/domain/classroom"
 	"ed/internal/domain/lesson"
+	"ed/internal/domain/logger"
+	"ed/internal/domain/request"
+	"ed/internal/domain/upload"
 	"ed/internal/domain/user"
 
 	"github.com/gin-gonic/gin"
@@ -28,11 +31,21 @@ func InitEngine() (*gin.Engine, error) {
 	lessonService := lesson.NewLessonService(lessonRepo)
 	lessonHand := lesson.NewHandler(lessonService)
 
+	loggerRepo := logger.NewLoggerRepo(database)
+	loggerService := logger.NewLoggerService(loggerRepo)
+
+	reqService := request.NewRequestService(loggerService)
+
+	uploadRepo := upload.NewUploadRepo(database)
+	uploadService := upload.NewUploadService(uploadRepo)
+	uploadHand := upload.NewHandler(uploadService, reqService, loggerService)
+
 	r := gin.Default()
 
 	r = userHand.InitUserRoutes(r)
 	r = classroomHand.InitClassroomRoutes(r)
 	r = lessonHand.InitLessonRoutes(r)
+	r = uploadHand.InitUploadRoutes(r)
 
 	return r, nil
 }

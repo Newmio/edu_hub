@@ -21,7 +21,7 @@ func NewUploadRepo(db *sqlx.DB) *uploadRepo {
 }
 
 func (db *uploadRepo) CreateFile(file FileHistory) error {
-	str := "insert into files(id_account, directory, file, date, size) values($1,$2,$3,$4,$5)"
+	str := "insert into files(id_account, directory, file, date, byte_size) values($1,$2,$3,$4,$5)"
 
 	result, err := db.db.Exec(str, file.Id_account, file.Directory, file.File, file.Date, file.Size)
 	if err != nil {
