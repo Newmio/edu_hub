@@ -17,6 +17,7 @@ import (
 type IRequestService interface {
 	WsConnect(w http.ResponseWriter, r *http.Request, h http.Header) (*websocket.Conn, error)
 	WsReadText(conn *websocket.Conn) ([]byte, error)
+	WsReadBinary(conn *websocket.Conn)([]byte, error)
 }
 
 type requestService struct {
@@ -39,6 +40,20 @@ func (s *requestService) WsReadText(conn *websocket.Conn) ([]byte, error) {
 
 	switch t {
 	case websocket.TextMessage:
+		return msg, nil
+	}
+
+	return nil, nil
+}
+
+func (s *requestService) WsReadBinary(conn *websocket.Conn)([]byte, error){
+	t, msg, err := conn.ReadMessage()
+	if err != nil {
+		return nil, ed.ErrTrace(err, ed.Trace())
+	}
+
+	switch t {
+	case websocket.BinaryMessage:
 		return msg, nil
 	}
 
@@ -116,7 +131,7 @@ func (s *requestService) HttpRequest(param Param) (*http.Response, error) {
 	log.Success = true
 
 	if param.CreateLog {
-		//s.r.LoggerRun(&log, "")
+		s.r.HttpDefaultResponse(&log)
 	}
 
 	return resp, nil

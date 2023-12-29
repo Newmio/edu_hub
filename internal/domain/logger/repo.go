@@ -23,7 +23,6 @@ func NewLoggerRepo(db *sqlx.DB) *loggerRepo {
 }
 
 func (db *loggerRepo) CreateLog(log *Log) error {
-	return nil
 	str := fmt.Sprintf(`insert into logs_%s(url, body_req, headers_req, status, body_resp, headers_resp,
 		method, date_start, date_stop, milliseconds, ip, success) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, log.Type)
 

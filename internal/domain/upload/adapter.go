@@ -21,13 +21,48 @@ func NewHandler(s IUploadService, request request.IRequestService, logger logger
 
 func (h *handler) InitUploadRoutes(r *gin.Engine) *gin.Engine {
 
-	r.GET("ws/upload", h.uploadRout)
+	r.GET("/ws/upload", h.uploadRout)
+	r.GET("/ws/unload", h.unloadRout)
 
 	return r
 }
 
+// TODO доделать загрузку файла
+func (h *handler) unloadRout(c *gin.Context) {
+	//var chanks [][]byte
+	var data FileSettings
+	log := h.logger.InitLog(c)
+
+	conn, err := h.request.WsConnect(c.Writer, c.Request, c.Request.Header)
+	if err != nil {
+		h.logger.WsErrorResponse(log, err)
+		return
+	}
+
+	for {
+
+		msg, err := h.request.WsReadText(conn)
+		if err != nil {
+			h.logger.WsErrorResponse(log, err)
+		}
+		log.Body_req += "\n" + string(msg)
+
+		err = json.Unmarshal(msg, &data)
+		if err != nil {
+			h.logger.WsErrorResponse(log, err)
+			return
+		}
+
+		// chanks, err = h.s.ReadLastChanks(&data)
+		// if err != nil {
+		// 	h.logger.WsErrorResponse(log, err)
+		// 	return
+		// }
+	}
+}
+
 func (h *handler) uploadRout(c *gin.Context) {
-	var data FileData
+	var data FileSettings
 	log := h.logger.InitLog(c)
 
 	conn, err := h.request.WsConnect(c.Writer, c.Request, c.Request.Header)
@@ -41,37 +76,45 @@ func (h *handler) uploadRout(c *gin.Context) {
 	if err != nil {
 		h.logger.WsErrorResponse(log, err)
 	}
+	defer file.Close()
 
 	for {
-		msg, err := h.request.WsReadText(conn)
-		if err != nil {
-			h.logger.WsErrorResponse(log, err)
-			return
-		}
-		log.Body_req += "\n" + string(msg)
-
-		if msg == nil {
-			continue
-		}
-
-		err = json.Unmarshal(msg, &data)
+		t, msg, err := conn.ReadMessage()
 		if err != nil {
 			h.logger.WsErrorResponse(log, err)
 			return
 		}
 
-		err = h.s.AppendChank(file, &data)
-		if err != nil {
-			h.logger.WsErrorResponse(log, err)
+		switch t {
+
+		case websocket.BinaryMessage:
+			err = h.s.AppendChank(file, msg)
+			if err != nil {
+				h.logger.WsErrorResponse(log, err)
+				return
+			}
+
+		case websocket.TextMessage:
+			log.Body_req += "\n" + string(msg)
+			err := json.Unmarshal(msg, &data)
+			if err != nil {
+				h.logger.WsErrorResponse(log, err)
+				return
+			}
+
+			err = h.s.UpdateFile(file, &data)
+			if err != nil {
+				h.logger.WsErrorResponse(log, err)
+				return
+			}
+
+			h.logger.WsDefaultResponse(log)
+			return
 		}
 
 		err = conn.WriteMessage(websocket.TextMessage, h.logger.WsDefaultResponse(log))
 		if err != nil {
 			h.logger.WsErrorResponse(log, err)
-			return
-		}
-
-		if data.Last {
 			return
 		}
 	}

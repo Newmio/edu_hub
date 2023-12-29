@@ -20,6 +20,6 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 
-	ReadBufferSize:  16384, // 16 KB
-	WriteBufferSize: 16384, // 16 KB
+	ReadBufferSize:  8192, // 8 KB
+	WriteBufferSize: 8192, // 8 KB
 }

@@ -1,11 +1,10 @@
 package upload
 
-type FileData struct {
+type FileSettings struct {
+	Status string `json:"status"`
 	Id_account int    `json:"id_account"`
-	Id_chank   int    `json:"id_chank"`
-	Data       string `json:"data"`
 	File_type  string `json:"file_type"`
-	Last       bool   `json:"last"`
+	File_name string `json:"file_name"`
 }
 
 type FileHistory struct {
@@ -16,3 +15,5 @@ type FileHistory struct {
 	Date       string `db:"date"`
 	Size       int64  `db:"byte_size"`
 }
+
+const CHANK_SIZE = 8 * 1024
