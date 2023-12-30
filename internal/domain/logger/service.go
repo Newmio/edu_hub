@@ -10,8 +10,12 @@ import (
 
 type ILoggerService interface {
 	InitLog(c *gin.Context) *Log
-	HttpDefaultResponse(log *Log) gin.H
-	HttpErrorResponse(log *Log, er error) gin.H
+	LoggerRun(log *Log, errorText string)
+	HttpDefaultResponse(c *gin.Context, log *Log)
+	HttpErrorResponse(c *gin.Context, log *Log, er error)
+	HttpIdResponse(c *gin.Context, log *Log, id int)
+	HttpBadAuthResponse(c *gin.Context, log *Log)
+	HttpTokenResponse(c *gin.Context, log *Log, token, refresh string)
 	WsDefaultResponse(log *Log) []byte
 	WsErrorResponse(log *Log, err error) []byte
 }
@@ -31,30 +35,63 @@ func NewLoggerService(r iLoggerRepo) *loggerService {
 
 func (s *loggerService) WsErrorResponse(log *Log, err error) []byte {
 	log.Type = "ws"
-	s.loggerRun(log, err.Error())
-	return []byte(fmt.Sprintf(`{"status": "error", "error": "%s"}`, err.Error()))
+	s.LoggerRun(log, err.Error())
+	return []byte(fmt.Sprintf(`{"status": false, "error": "%s"}`, err.Error()))
 }
 
 func (s *loggerService) WsDefaultResponse(log *Log) []byte {
 	log.Type = "ws"
-	s.loggerRun(log, "")
-	return []byte(`{"status": "success"}`)
+	s.LoggerRun(log, "")
+	return []byte(`{"status": true}`)
 }
 
-func (s *loggerService) HttpErrorResponse(log *Log, er error) gin.H {
+func (s *loggerService) HttpTokenResponse(c *gin.Context, log *Log, token, refresh string){
 	log.Type = "http"
-	s.loggerRun(log, er.Error())
-	return gin.H{"status": "error", "error": er.Error()}
+	s.LoggerRun(log, "")
+
+	c.Header("Request-Id", log.Request_id)
+	c.Header("Content-Type", "application/json")
+	c.JSON(200, gin.H{"status": true, "token": token, "refresh": refresh})
 }
 
-func (s *loggerService) HttpDefaultResponse(log *Log) gin.H {
+func (s *loggerService) HttpBadAuthResponse(c *gin.Context, log *Log) {
 	log.Type = "http"
-	s.loggerRun(log, "")
-	return gin.H{"status": "success"}
+	s.LoggerRun(log, "unauthorized")
+
+	c.Header("Request-Id", log.Request_id)
+	c.Header("Content-Type", "application/json")
+	c.JSON(401, gin.H{"status": false, "error": "unauthorized"})
+}
+
+func (s *loggerService) HttpIdResponse(c *gin.Context, log *Log, id int) {
+	log.Type = "http"
+	s.LoggerRun(log, "")
+
+	c.Header("Request-Id", log.Request_id)
+	c.Header("Content-Type", "application/json")
+	c.JSON(200, gin.H{"status": true, "id": id})
+}
+
+func (s *loggerService) HttpErrorResponse(c *gin.Context, log *Log, er error) {
+	log.Type = "http"
+	s.LoggerRun(log, er.Error())
+
+	c.Header("Request-Id", log.Request_id)
+	c.Header("Content-Type", "application/json")
+	c.JSON(500, gin.H{"status": false, "error": er.Error()})
+}
+
+func (s *loggerService) HttpDefaultResponse(c *gin.Context, log *Log) {
+	log.Type = "http"
+	s.LoggerRun(log, "")
+
+	c.Header("Request-Id", log.Request_id)
+	c.Header("Content-Type", "application/json")
+	c.JSON(200, gin.H{"status": true})
 }
 
 // /////////////////////////////////////////////////////////////////////////////////
-func (s *loggerService) loggerRun(log *Log, errorText string) {
+func (s *loggerService) LoggerRun(log *Log, errorText string) {
 	log.Date_stop = time.Now()
 	log.Milliseconds = int(log.Date_stop.Sub(log.Date_stop).Milliseconds())
 
@@ -84,6 +121,7 @@ func (s *loggerService) InitLog(c *gin.Context) *Log {
 	log.Method = c.Request.Method
 	log.Date_start = time.Now()
 	log.Ip = c.ClientIP()
+	log.Request_id = fmt.Sprint(time.Now().UnixNano())
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {

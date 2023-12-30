@@ -10,7 +10,8 @@ import (
 type iUserRepo interface {
 	MigrateUser() error
 	CreatePerson(pers *Person) error
-	CreateAccount(acc *Account) error
+	CreateAccount(acc *Account) (int, error)
+	GetAccount(login, pass string)(*Account, error)
 }
 
 type userRepo struct {
@@ -19,6 +20,19 @@ type userRepo struct {
 
 func NewUserRepo(db *sqlx.DB) *userRepo {
 	return &userRepo{db: db}
+}
+
+func (db *userRepo) GetAccount(login, pass string)(*Account, error){
+	var account Account
+
+	str := "select * from accounts where login = $1 and password = $2"
+
+	err := db.db.Get(&account, str, login, pass)
+	if err != nil{
+		return nil, ed.ErrDbTrace(err, str, ed.Trace())
+	}
+
+	return &account, nil
 }
 
 func (db *userRepo) CreatePerson(pers *Person) error {
@@ -41,10 +55,10 @@ func (db *userRepo) CreatePerson(pers *Person) error {
 	return nil
 }
 
-func (db *userRepo) CreateAccount(acc *Account) error {
+func (db *userRepo) CreateAccount(acc *Account) (int, error) {
 	tx, err := db.db.Beginx()
 	if err != nil{
-		return ed.ErrTrace(err, ed.Trace())
+		return 0, ed.ErrTrace(err, ed.Trace())
 	}
 
 	str := `select exists(select 1 from accounts where login = $1) as result`
@@ -53,37 +67,23 @@ func (db *userRepo) CreateAccount(acc *Account) error {
 	err = tx.QueryRow(str, acc.Login).Scan(&res)
 	if err != nil{
 		tx.Rollback()
-		return ed.ErrDbTrace(err, str, ed.Trace())
+		return 0, ed.ErrDbTrace(err, str, ed.Trace())
 	}
 
 	if res{
 		tx.Rollback()
-		return errors.New("account already exists")
+		return 0, errors.New("account already exists")
 	}
 
-	str = `insert into accounts(login, password, id_person, active) values($1,$2,$3,$4)`
+	str = `insert into accounts(login, password, id_person, active) values($1,$2,$3,$4) returning id`
 
-	result, err := tx.Exec(str, acc.Login, acc.Pass, acc.Id_person, acc.Active)
+	var id int
+
+	err = tx.QueryRow(str, acc.Login, acc.Pass, acc.Id_person, acc.Active).Scan(&id)
 	if err != nil {
 		tx.Rollback()
-		return ed.ErrDbTrace(err, str, ed.Trace())
+		return 0, ed.ErrDbTrace(err, str, ed.Trace())
 	}
 
-	row, err := result.RowsAffected()
-	if err != nil {
-		tx.Rollback()
-		return ed.ErrDbTrace(err, str, ed.Trace())
-	}
-
-	if row == 0 {
-		tx.Rollback()
-		return errors.New("bad insert account")
-	}
-
-	if err := tx.Commit(); err != nil{
-		tx.Rollback()
-		return ed.ErrTrace(err, ed.Trace())
-	}
-
-	return nil
+	return id, nil
 }

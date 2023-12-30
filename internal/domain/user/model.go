@@ -1,5 +1,17 @@
 package user
 
+import "github.com/dgrijalva/jwt-go"
+
+const (
+	SALT = "093aprfmcxqlf851"
+	KEY = "529qkexmfplar491"
+)
+
+type tokenClaims struct{
+	jwt.StandardClaims
+	UserId int `json:"user_id"`
+}
+
 type Account struct {
 	Id        int   `json:"id" db:"id"`
 	Login     string `json:"login" db:"login"`

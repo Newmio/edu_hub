@@ -17,8 +17,9 @@ type Log struct {
 	Date_stop    time.Time `json:"date_stop" db:"date_stop"`
 	Milliseconds int       `json:"milliseconds" db:"milliseconds"`
 	Ip           string    `json:"ip" db:"ip"`
+	Request_id   string    `json:"request_id" db:"request_id"`
 	Success      bool      `json:"success" db:"success"`
-	Type string
+	Type         string
 }
 
 type Error struct {

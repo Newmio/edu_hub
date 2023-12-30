@@ -131,7 +131,7 @@ func (s *requestService) HttpRequest(param Param) (*http.Response, error) {
 	log.Success = true
 
 	if param.CreateLog {
-		s.r.HttpDefaultResponse(&log)
+		s.r.LoggerRun(&log, "")
 	}
 
 	return resp, nil
