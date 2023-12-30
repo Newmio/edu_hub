@@ -19,9 +19,12 @@ func InitEngine() (*gin.Engine, error) {
 		return nil, ed.ErrTrace(err, ed.Trace())
 	}
 
+	loggerRepo := logger.NewLoggerRepo(database)
+	loggerService := logger.NewLoggerService(loggerRepo)
+
 	userRepo := user.NewUserRepo(database)
 	userService := user.NewUserService(userRepo)
-	userHand := user.NewHandler(userService)
+	userHand := user.NewHandler(userService, loggerService)
 
 	classroomRepo := classroom.NewClassroomRepo(database)
 	classroomService := classroom.NewClassroomService(classroomRepo)
@@ -30,9 +33,6 @@ func InitEngine() (*gin.Engine, error) {
 	lessonRepo := lesson.NewLessonRepo(database)
 	lessonService := lesson.NewLessonService(lessonRepo)
 	lessonHand := lesson.NewHandler(lessonService)
-
-	loggerRepo := logger.NewLoggerRepo(database)
-	loggerService := logger.NewLoggerService(loggerRepo)
 
 	reqService := request.NewRequestService(loggerService)
 
