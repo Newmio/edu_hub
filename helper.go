@@ -6,6 +6,8 @@ import (
 	"runtime"
 )
 
+const TIMEFORMAT = "01-02-2006 15:04:05.000"
+
 func ErrTrace(err error, str string) error {
 	fmt.Println(str)
 	return errors.New(err.Error() + "\n" + str)

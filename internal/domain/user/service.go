@@ -11,9 +11,8 @@ import (
 )
 
 type IUserService interface {
-	CreateAccount(acc *Account) (int, error)
-	CreatePerson(pers *Person) error
-	Register(login, pass string)(string, string, error)
+	CreateAccount(acc *Account) (string, string, int, error)
+	CreatePerson(pers *Person, id_acc int) error
 	ParseToken(token string) (int, error)
 }
 
@@ -50,26 +49,21 @@ func (s *userService) ParseToken(token string) (int, error) {
 	return claims.UserId, nil
 }
 
-func (s *userService) Register(login, pass string) (string, string, error) {
-
-	account, err := s.r.GetAccount(login, generateHash(pass))
-	if err != nil {
-		return "", "", ed.ErrTrace(err, ed.Trace())
-	}
+func (s *userService) register(id int) (string, string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
-		account.Id,
+		id,
 	})
 
 	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24 * 7).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * 24 * 800).Unix(),
 		},
-		account.Id,
+		id,
 	})
 
 	t, err := token.SignedString([]byte(KEY))
@@ -85,13 +79,40 @@ func (s *userService) Register(login, pass string) (string, string, error) {
 	return t, r, nil
 }
 
-func (s *userService) CreateAccount(acc *Account) (int, error) {
+func (s *userService) CreateAccount(acc *Account) (string, string, int, error) {
 	acc.Pass = generateHash(acc.Pass)
-	return s.r.CreateAccount(acc)
+
+	if acc.Id_person < 1{
+		acc.Active = false
+	}
+
+	if acc.Role == ""{
+		acc.Role = "user"
+	}
+
+	id, err := s.r.CreateAccount(acc)
+	if err != nil{
+		return "", "", 0, ed.ErrTrace(err, ed.Trace())
+	}
+
+	token, refresh, err := s.register(id)
+	if err != nil{
+		return "", "", 0, ed.ErrTrace(err, ed.Trace())
+	}
+
+	return token, refresh, id, nil
 }
 
-func (s *userService) CreatePerson(pers *Person) error {
-	return s.r.CreatePerson(pers)
+func (s *userService) CreatePerson(pers *Person, id_acc int) error {
+
+	t, err := time.Parse(ed.TIMEFORMAT, pers.Date)
+	if err != nil{
+		return ed.ErrTrace(err, ed.Trace())
+	}
+
+	pers.Age = time.Now().Year() - t.Year()
+	
+	return s.r.CreatePerson(pers, id_acc)
 }
 
 func generateHash(pass string) string {

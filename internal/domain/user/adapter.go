@@ -20,28 +20,14 @@ func NewHandler(s IUserService, logger logger.ILoggerService) *handler {
 }
 
 func (h *handler) InitUserRoutes(r *gin.Engine) *gin.Engine {
-	r.POST("/createAccount", h.CreateAccountRout)
+	
+	auth := r.Group("/auth")
+	{
+		auth.POST("/register", h.CreateAccountRout)
+		auth.POST("/login")
+	}
+
 	return r
-}
-
-func (h *handler) RegisterRout(c *gin.Context) {
-	var acc Account
-
-	log := h.logger.InitLog(c)
-
-	err := json.Unmarshal([]byte(log.Body_req), &acc)
-	if err != nil {
-		h.logger.HttpErrorResponse(c, log, ed.ErrTrace(err, ed.Trace()))
-		return
-	}
-
-	token, refresh, err := h.s.Register(acc.Login, acc.Pass)
-	if err != nil {
-		h.logger.HttpErrorResponse(c, log, ed.ErrTrace(err, ed.Trace()))
-		return
-	}
-
-	h.logger.HttpTokenResponse(c, log, token, refresh)
 }
 
 func (h *handler) CreateAccountRout(c *gin.Context) {
@@ -55,13 +41,13 @@ func (h *handler) CreateAccountRout(c *gin.Context) {
 		return
 	}
 
-	id, err := h.s.CreateAccount(&acc)
+	token, refresh, id, err := h.s.CreateAccount(&acc)
 	if err != nil {
 		h.logger.HttpErrorResponse(c, log, ed.ErrTrace(err, ed.Trace()))
 		return
 	}
 
-	c.JSON(201, gin.H{"status": true, "id": id})
+	h.logger.HttpRegisterResponse(c, log, token, refresh, id)
 }
 
 func (h *handler) UserIdentity(c *gin.Context) {

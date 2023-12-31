@@ -16,6 +16,7 @@ type ILoggerService interface {
 	HttpIdResponse(c *gin.Context, log *Log, id int)
 	HttpBadAuthResponse(c *gin.Context, log *Log)
 	HttpTokenResponse(c *gin.Context, log *Log, token, refresh string)
+	HttpRegisterResponse(c *gin.Context, log *Log, token, refresh string, id_acc int)
 	WsDefaultResponse(log *Log) []byte
 	WsErrorResponse(log *Log, err error) []byte
 }
@@ -43,6 +44,15 @@ func (s *loggerService) WsDefaultResponse(log *Log) []byte {
 	log.Type = "ws"
 	s.LoggerRun(log, "")
 	return []byte(`{"status": true}`)
+}
+
+func (s *loggerService) HttpRegisterResponse(c *gin.Context, log *Log, token, refresh string, id_acc int){
+	log.Type = "http"
+	s.LoggerRun(log, "")
+
+	c.Header("Request-Id", log.Request_id)
+	c.Header("Content-Type", "application/json")
+	c.JSON(200, gin.H{"status": true, "id": id_acc, "token": token, "refresh": refresh})
 }
 
 func (s *loggerService) HttpTokenResponse(c *gin.Context, log *Log, token, refresh string){
