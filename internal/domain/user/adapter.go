@@ -20,14 +20,24 @@ func NewHandler(s IUserService, logger logger.ILoggerService) *handler {
 }
 
 func (h *handler) InitUserRoutes(r *gin.Engine) *gin.Engine {
-	
+
 	auth := r.Group("/auth")
 	{
 		auth.POST("/register", h.CreateAccountRout)
 		auth.POST("/login")
 	}
 
+	api := r.Group("/api", h.UserIdentity)
+	{
+		api.GET("/test", h.test)
+	}
+
 	return r
+}
+
+func (h *handler) test(c *gin.Context) {
+	id, flag := c.Get("id_acc")
+	c.JSON(200, gin.H{"val": id, "flag": flag})
 }
 
 func (h *handler) CreateAccountRout(c *gin.Context) {
@@ -43,6 +53,11 @@ func (h *handler) CreateAccountRout(c *gin.Context) {
 
 	token, refresh, id, err := h.s.CreateAccount(&acc)
 	if err != nil {
+		if id == -1{
+			h.logger.HttpErrorResponse(c, log, err)
+			return
+		}
+		
 		h.logger.HttpErrorResponse(c, log, ed.ErrTrace(err, ed.Trace()))
 		return
 	}
@@ -60,16 +75,16 @@ func (h *handler) UserIdentity(c *gin.Context) {
 	}
 
 	parts := strings.Split(header, " ")
-	if len(parts) != 2{
+	if len(parts) != 2 {
 		h.logger.HttpErrorResponse(c, log, errors.New("invalid auth header"))
 		return
 	}
 
 	id, err := h.s.ParseToken(parts[1])
-	if err != nil{
+	if err != nil {
 		h.logger.HttpErrorResponse(c, log, ed.ErrTrace(err, ed.Trace()))
 		return
 	}
 
-	c.Set("account_id", id)
+	c.Set("id_acc", id)
 }

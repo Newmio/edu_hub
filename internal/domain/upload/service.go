@@ -164,7 +164,7 @@ func (s *uploadService) UpdateFile(file *os.File, data *FileSettings) error {
 		Id_account: data.Id_account,
 		Directory:  directory,
 		File:       name + "." + data.File_type,
-		Date:       time.Now().Format("02-01-2006 15:04:05.000"),
+		Date:       time.Now().Format(ed.TIMEFORMAT),
 		Size:       inf.Size()})
 }
 

@@ -93,6 +93,11 @@ func (db *userRepo) CreatePerson(pers *Person, id_acc int) error {
 		return ed.ErrDbTrace(err, str, ed.Trace())
 	}
 
+	if err := tx.Commit(); err != nil{
+		tx.Rollback()
+		return ed.ErrTrace(err, ed.Trace())
+	}
+
 	return nil
 }
 
@@ -113,7 +118,7 @@ func (db *userRepo) CreateAccount(acc *Account) (int, error) {
 
 	if res {
 		tx.Rollback()
-		return 0, errors.New("account already exists")
+		return -1, errors.New("account already exists")
 	}
 
 	str = `insert into accounts(login, password, id_person, role, active) values($1,$2,$3,$4,$5) returning id`
@@ -124,6 +129,11 @@ func (db *userRepo) CreateAccount(acc *Account) (int, error) {
 	if err != nil {
 		tx.Rollback()
 		return 0, ed.ErrDbTrace(err, str, ed.Trace())
+	}
+
+	if err := tx.Commit(); err != nil{
+		tx.Rollback()
+		return 0, ed.ErrTrace(err, ed.Trace())
 	}
 
 	return id, nil

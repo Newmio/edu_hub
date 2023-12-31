@@ -7,7 +7,7 @@ func (db *loggerRepo) MigrateLogger()error{
 	body_req text default '', headers_req text default '', status int default 0,
 	body_resp text default '', headers_resp text default '', method text default '', 
 	date_start timestamp default '10-19-2023 08:35:34.000', date_stop timestamp default '10-19-2023 08:35:34.000',
-	milliseconds int default 0, ip text default '', success boolean default false)`
+	milliseconds int default 0, ip text default '', request_id text default '', success boolean default false)`
 
 	_, err := db.db.Exec(str)
 	if err != nil{
@@ -18,7 +18,7 @@ func (db *loggerRepo) MigrateLogger()error{
 	body_req text default '', headers_req text default '', status int default 0,
 	body_resp text default '', headers_resp text default '', method text default '', 
 	date_start timestamp default '10-19-2023 08:35:34.000', date_stop timestamp default '10-19-2023 08:35:34.000',
-	milliseconds int default 0, ip text default '', success boolean default false)`
+	milliseconds int default 0, ip text default '', request_id text default '', success boolean default false)`
 
 	_, err = db.db.Exec(str)
 	if err != nil{

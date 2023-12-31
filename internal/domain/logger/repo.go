@@ -24,12 +24,12 @@ func NewLoggerRepo(db *sqlx.DB) *loggerRepo {
 
 func (db *loggerRepo) CreateLog(log *Log) error {
 	str := fmt.Sprintf(`insert into logs_%s(url, body_req, headers_req, status, body_resp, headers_resp,
-		method, date_start, date_stop, milliseconds, ip, request_id success) 
+		method, date_start, date_stop, milliseconds, ip, request_id, success) 
 		values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, log.Type)
 
 	result, err := db.db.Exec(str, log.Url, log.Body_req, log.Headers_req, log.Status, log.Body_resp,
-		log.Headers_resp, log.Method, log.Date_start.Format("02-01-2006 15:04:05.000"),
-		log.Date_stop.Format("02-01-2006 15:04:05.000"), log.Milliseconds, log.Ip, log.Request_id, log.Success)
+		log.Headers_resp, log.Method, log.Date_start.Format(ed.TIMEFORMAT),
+		log.Date_stop.Format(ed.TIMEFORMAT), log.Milliseconds, log.Ip, log.Request_id, log.Success)
 	if err != nil {
 		return ed.ErrDbTrace(err, str, ed.Trace())
 	}
@@ -49,7 +49,7 @@ func (db *loggerRepo) CreateLog(log *Log) error {
 func (db *loggerRepo) CreateError(er Error) error {
 	str := `insert into errors(error, date) values($1,$2)`
 
-	result, err := db.db.Exec(str, er.Err_text, er.Date.Format("02-01-2006 15:04:05.000"))
+	result, err := db.db.Exec(str, er.Err_text, er.Date.Format(ed.TIMEFORMAT))
 	if err != nil {
 		return ed.ErrDbTrace(err, str, ed.Trace())
 	}

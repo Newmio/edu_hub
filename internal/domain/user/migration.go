@@ -6,7 +6,7 @@ import (
 
 func (db *userRepo) MigrateUser() error {
 	str := `create table if not exists accounts(id serial primary key, login text unique, password text not null,
-		id_person int not null, role text default default 'user', active boolean not null)`
+		id_person int not null, role text default 'user', active boolean not null)`
 	_, err := db.db.DB.Exec(str)
 	if err != nil {
 		return ed.ErrDbTrace(err, str, ed.Trace())

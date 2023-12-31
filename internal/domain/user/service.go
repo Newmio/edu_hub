@@ -51,25 +51,31 @@ func (s *userService) ParseToken(token string) (int, error) {
 
 func (s *userService) register(id int) (string, string, error) {
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
+	tClaims := &tokenClaims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 		id,
-	})
+		"acess_token",
+	}
 
-	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24 * 800).Unix(),
-		},
-		id,
-	})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, tClaims)
 
 	t, err := token.SignedString([]byte(KEY))
 	if err != nil {
 		return "", "", ed.ErrTrace(err, ed.Trace())
 	}
+
+	rClaims := &tokenClaims{
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 24 * 800).Unix(),
+		},
+		id,
+		t,
+	}
+
+	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, rClaims)
 
 	r, err := refresh.SignedString([]byte(KEY))
 	if err != nil {
@@ -82,8 +88,8 @@ func (s *userService) register(id int) (string, string, error) {
 func (s *userService) CreateAccount(acc *Account) (string, string, int, error) {
 	acc.Pass = generateHash(acc.Pass)
 
-	if acc.Id_person < 1{
-		acc.Active = false
+	if acc.Id_person > 0 || acc.Role == "admin"{
+		acc.Active = true
 	}
 
 	if acc.Role == ""{
@@ -92,6 +98,9 @@ func (s *userService) CreateAccount(acc *Account) (string, string, int, error) {
 
 	id, err := s.r.CreateAccount(acc)
 	if err != nil{
+		if id == -1{
+			return "", "", -1, err
+		}
 		return "", "", 0, ed.ErrTrace(err, ed.Trace())
 	}
 
@@ -119,5 +128,5 @@ func generateHash(pass string) string {
 	hash := sha256.New()
 	hash.Write([]byte(pass))
 
-	return fmt.Sprint(hash.Sum([]byte(SALT)))
+	return fmt.Sprintf("%x", hash.Sum([]byte(SALT)))
 }

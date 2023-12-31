@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-const TIMEFORMAT = "01-02-2006 15:04:05.000"
+const TIMEFORMAT = "02-01-2006 15:04:05.000"
 
 func ErrTrace(err error, str string) error {
 	fmt.Println(str)
@@ -14,6 +14,7 @@ func ErrTrace(err error, str string) error {
 }
 
 func ErrDbTrace(err error, sql, str string) error {
+	fmt.Println(str)
 	return errors.New(err.Error() + "\n" + sql + "\n" + str)
 }
 
