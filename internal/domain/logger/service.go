@@ -99,7 +99,7 @@ func (s *loggerService) HttpBadAuthResponse(c *gin.Context, log *Log) {
 
 	c.Header("Request-Id", log.Request_id)
 	c.Header("Content-Type", "application/json")
-	c.JSON(401, gin.H{"status": false, "error": "unauthorized"})
+	c.AbortWithStatusJSON(401, gin.H{"status": false, "error": "unauthorized"})
 }
 
 func (s *loggerService) HttpIdResponse(c *gin.Context, log *Log, id int) {
@@ -134,7 +134,7 @@ func (s *loggerService) HttpErrorResponse(c *gin.Context, log *Log, er error) {
 
 	c.Header("Request-Id", log.Request_id)
 	c.Header("Content-Type", "application/json")
-	c.JSON(500, gin.H{"status": false, "error": er.Error()})
+	c.AbortWithStatusJSON(500, gin.H{"status": false, "error": er.Error()})
 }
 
 func (s *loggerService) HttpDefaultResponse(c *gin.Context, log *Log) {

@@ -13,7 +13,8 @@ import (
 type IUserService interface {
 	CreateAccount(acc *Account) (string, string, int, error)
 	CreatePerson(pers *Person, id_acc int) error
-	ParseToken(token string) (int, error)
+	ParseToken(token string, isRefresh bool) (int, error)
+	CreateTokens(id int) (string, string, error)
 }
 
 type userService struct {
@@ -28,16 +29,23 @@ func NewUserService(r iUserRepo) *userService {
 	return &userService{r: r}
 }
 
-func (s *userService) ParseToken(token string) (int, error) {
+func (s *userService) ParseToken(token string, isRefresh bool) (int, error) {
 	t, err := jwt.ParseWithClaims(token, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("error signinig method")
 		}
 
-		return []byte(KEY), nil
+		if isRefresh{
+			return []byte(KEYREFRESH), nil
+		}else{
+			return []byte(KEYACCES), nil
+		}
 	})
 	if err != nil {
+		if err.Error() == "signature is invalid" {
+			return 0, errors.New("invalid token")
+		}
 		return 0, ed.ErrTrace(err, ed.Trace())
 	}
 
@@ -49,7 +57,7 @@ func (s *userService) ParseToken(token string) (int, error) {
 	return claims.UserId, nil
 }
 
-func (s *userService) register(id int) (string, string, error) {
+func (s *userService) CreateTokens(id int) (string, string, error) {
 
 	tClaims := &tokenClaims{
 		jwt.StandardClaims{
@@ -60,9 +68,11 @@ func (s *userService) register(id int) (string, string, error) {
 		"acess_token",
 	}
 
+	jwt.MapClaims
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, tClaims)
 
-	t, err := token.SignedString([]byte(KEY))
+	t, err := token.SignedString([]byte(KEYACCES))
 	if err != nil {
 		return "", "", ed.ErrTrace(err, ed.Trace())
 	}
@@ -72,12 +82,12 @@ func (s *userService) register(id int) (string, string, error) {
 			ExpiresAt: time.Now().Add(time.Hour * 24 * 800).Unix(),
 		},
 		id,
-		t,
+		TEXTREFRESH,
 	}
 
 	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, rClaims)
 
-	r, err := refresh.SignedString([]byte(KEY))
+	r, err := refresh.SignedString([]byte(KEYREFRESH))
 	if err != nil {
 		return "", "", ed.ErrTrace(err, ed.Trace())
 	}
@@ -88,24 +98,24 @@ func (s *userService) register(id int) (string, string, error) {
 func (s *userService) CreateAccount(acc *Account) (string, string, int, error) {
 	acc.Pass = generateHash(acc.Pass)
 
-	if acc.Id_person > 0 || acc.Role == "admin"{
+	if acc.Id_person > 0 || acc.Role == "admin" {
 		acc.Active = true
 	}
 
-	if acc.Role == ""{
+	if acc.Role == "" {
 		acc.Role = "user"
 	}
 
 	id, err := s.r.CreateAccount(acc)
-	if err != nil{
-		if id == -1{
+	if err != nil {
+		if id == -1 {
 			return "", "", -1, err
 		}
 		return "", "", 0, ed.ErrTrace(err, ed.Trace())
 	}
 
-	token, refresh, err := s.register(id)
-	if err != nil{
+	token, refresh, err := s.CreateTokens(id)
+	if err != nil {
 		return "", "", 0, ed.ErrTrace(err, ed.Trace())
 	}
 
@@ -115,12 +125,12 @@ func (s *userService) CreateAccount(acc *Account) (string, string, int, error) {
 func (s *userService) CreatePerson(pers *Person, id_acc int) error {
 
 	t, err := time.Parse(ed.TIMEFORMAT, pers.Date)
-	if err != nil{
+	if err != nil {
 		return ed.ErrTrace(err, ed.Trace())
 	}
 
 	pers.Age = time.Now().Year() - t.Year()
-	
+
 	return s.r.CreatePerson(pers, id_acc)
 }
 
